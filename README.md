@@ -1,23 +1,4 @@
-Absolutely! I can draft a **professional README** for your Databricks Delta Live Tables (DLT) project that reflects best practices, explains the pipeline architecture, and is structured for both developers and stakeholders. Here’s a polished version:
-
----
-
 # Olist Payments Pipeline - Delta Live Tables Project
-
-## Table of Contents
-
-1. [Project Overview](#project-overview)
-2. [Architecture](#architecture)
-3. [Pipeline Details](#pipeline-details)
-4. [Data Schema](#data-schema)
-5. [Data Quality Rules](#data-quality-rules)
-6. [Getting Started](#getting-started)
-7. [Deployment](#deployment)
-8. [Maintenance & Monitoring](#maintenance--monitoring)
-9. [Contributing](#contributing)
-10. [License](#license)
-
----
 
 ## Project Overview
 
@@ -28,36 +9,85 @@ This project ensures:
 * Reliable **streaming ingestion** from raw data sources.
 * **Schema consistency** between bronze and silver layers.
 * **Data quality enforcement** for key fields.
+* **Slowly Changing Dimension** *[Type-1, Type-2]*
 * Support for downstream analytics and reporting.
 
 ---
 
 ## Architecture
-
-The pipeline follows the **medallion architecture**:
-
+**PROJECT ARCHITECTURE**
+![Alt text for accessibility](project_architecture.png)
+## Diagram
 ```
-Bronze Layer (raw ingestion)
+Landing Layer (All Data Available)
+   |
+   |--[Row data Conming on data lake]
+   |
+Bronze Layer (raw ingestion from data lake)
    |
    |--[DLT Streaming Pipeline]
    |
 Silver Layer (cleaned, validated, structured)
    |
-   |--[Analytical Queries, BI Tools, Machine Learning]
+   |--[Machine Learning, Artificial Intelligence, Data Scientist]
+   |
+Gold Layer (Business Ready Data, Star Schema Modeling)
+   |
+   |--[Analytical Queries, BI Tools]
+   |
 ```
 
-* **Bronze Layer**: Contains raw `payments` data with minimal transformations.
-* **Silver Layer**: Cleaned, schema-corrected, and validated `payments` table ready for analysis.
-
+* **Bronze Layer**: Contains raw `payments` data with minimal validation.
+* **Silver Layer**: Cleaned, schema-corrected, and validated `payments` table ready model building.
+* **Gold Layer**  : Business Ready Star Schema Model for analysis `payments` table ready for analysis.
 ---
 
 ## Pipeline Details
+**LAKE HOUSE ARCHITECTURE**
+![Alt text for accessibility](lakehouse_architecture.png)
 
 ### Bronze Table Ingestion
 
 * Source: `olist_cata.bronze.payments`
 * Reads as a **streaming table**.
 * Filters out records where `order_id` is null.
+
+## Data Quality Rules
+
+| Rule Name                       | Description                             |
+| ------------------------------- | --------------------------------------- |
+| `order_id_not_null`             | `order_id` must not be null             |
+| `payment_sequential_not_null`   | `payment_sequential` must not be null   |
+| `payment_type_not_null`         | `payment_type` must not be null         |
+| `payment_installments_not_null` | `payment_installments` must not be null |
+| `payment_value_positive`        | `payment_value` must be > 0             |
+
+## Data Schema
+
+**Silver Table: `olist_cata.bronze.payments`**
+# BEFORE
+
+| Column Name          | Data Type | Nullable |
+| -------------------- | --------- | -------- |
+| order_id             | STRING    | YES      |
+| payment_sequential   | STRING    | YES      |
+| payment_type         | STRING    | YES      |
+| payment_installments | STRING    | YES      |
+| payment_value        | STRING    | YES      |
+
+# AFTER
+
+| Column Name          | Data Type | Nullable |
+| -------------------- | --------- | -------- |
+| order_id             | STRING    | YES      |
+| payment_sequential   | STRING    | YES      |
+| payment_type         | STRING    | YES      |
+| payment_installments | STRING    | YES      |
+| payment_value        | STRING    | YES      |
+| ingest_at            | TIMESTAMP | NO       |
+
+**add one column for Slowly Changing Dimension (ingest_at)**
+---
 
 ### Silver Table Transformation
 
@@ -89,16 +119,18 @@ Silver Layer (cleaned, validated, structured)
 
 ---
 
-## Data Quality Rules
+## GOLD LAYER
+**Building Data Model with ( Star Schema)**
+```
+           Dim_Date
+              |
+Dim_Product — Fact_Sales — Dim_Customer
+              |
+           Dim_Store
+```
 
-| Rule Name                       | Description                             |
-| ------------------------------- | --------------------------------------- |
-| `order_id_not_null`             | `order_id` must not be null             |
-| `payment_sequential_not_null`   | `payment_sequential` must not be null   |
-| `payment_type_not_null`         | `payment_type` must not be null         |
-| `payment_installments_not_null` | `payment_installments` must not be null |
-| `payment_value_positive`        | `payment_value` must be > 0             |
-
+## Data Folw Look Like This:
+![Alt text for accessibility](data_flow.png)
 These rules are enforced using **DLT expectations**. Records failing these rules are dropped automatically.
 
 ---
